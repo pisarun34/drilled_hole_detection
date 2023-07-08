@@ -37,17 +37,18 @@ image_date = '2023-8-7'
 image_list = ['IMG_E0823.JPG','IMG_E0824.JPG','IMG_E0825.JPG','IMG_E0826.JPG']
 video_file = 'IMG_0827.MOV'
 resized_video = 0.6296875
+resized_imgs = 0.3
 
 def image_detect_find_circles():
     p = [[(564, 635), (613, 690)], [(773, 635), (807, 690)], [(950, 635), (995, 690)], [(1076, 635), (1278, 690)],[(1657, 635), (1690, 690)],[(1773, 635), (1804, 690)]]
     for image_file in image_list:
-        resized_img = 0.3
+        
         image_path = os.path.join(directory, image_date, image_file)
         
         # อ่านภาพ
         img = cv2.imread(image_path)
         
-        resized_img = cv2.resize(img, (int(img.shape[1] * resized_img), int(img.shape[0] * resized_img)))
+        resized_img = cv2.resize(img, (int(img.shape[1] * resized_imgs), int(img.shape[0] * resized_imgs)))
         print(resized_img.shape)
         gray_img = cv2.cvtColor(resized_img, cv2.COLOR_BGR2GRAY)
 
@@ -116,15 +117,16 @@ def video_detect_contour():
         frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         resized_img = cv2.resize(frame, (int(frame.shape[1] * resized_video), int(frame.shape[0] * resized_video)))
         gray_img = cv2.cvtColor(resized_img, cv2.COLOR_BGR2GRAY)
+        gray_img = cv2.medianBlur(gray_img, ksize=15)
         for i in p:
             
             color_img = resized_img[i[0][1]:i[1][1], i[0][0]:i[1][0]]
             image_crop = gray_img[i[0][1]:i[1][1], i[0][0]:i[1][0]]
-            blur_img = cv2.GaussianBlur(image_crop, (5,5), 1)
-            ret, thresh = cv2.threshold(blur_img, 10, 255, cv2.THRESH_BINARY)
-            thresh = cv2.bitwise_not(thresh)
-            kernel = np.ones((5,5),np.uint8)
-            thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+            #blur_img = cv2.GaussianBlur(image_crop, (5,5), 1)
+            ret, thresh = cv2.threshold(image_crop, 10, 255, cv2.THRESH_BINARY)
+            #thresh = cv2.bitwise_not(thresh)
+            #kernel = np.ones((5,5),np.uint8)
+            #thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
             #thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
             #resized_img[i[0][1]:i[1][1], i[0][0]:i[1][0]] = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
             contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
