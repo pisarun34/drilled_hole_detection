@@ -32,12 +32,12 @@ def draw_rectangle(event, x, y, flags, param):
 
 directory = 'images'
 video_directory = 'video'
-image_date = '2023-8-7'
+image_date = '2023-12-7'
 #image_file = 'IMG_E0823.JPG'
 image_list = ['IMG_E0823.JPG','IMG_E0824.JPG','IMG_E0825.JPG','IMG_E0826.JPG']
 video_file = 'IMG_0827.MOV'
 resized_video = 0.6296875
-resized_imgs = 0.3
+resized_imgs = 1
 
 def image_detect_find_circles():
     p = [[(564, 635), (613, 690)], [(773, 635), (807, 690)], [(950, 635), (995, 690)], [(1076, 635), (1278, 690)],[(1657, 635), (1690, 690)],[(1773, 635), (1804, 690)]]
@@ -85,6 +85,70 @@ def image_detect_find_circles():
 
         # ปิดหน้าต่างภาพทั้งหมด
         cv2.destroyAllWindows()
+
+def image_detect_find_contour():
+    p = [[(291, 230),(329, 290)],[(500, 230),(525, 290)],[(679, 230),(711, 290)],[(801, 230),(1010, 290)],[(1371, 230),(1399, 290)],[(1480, 230),(1500, 290)]]
+    lst_image = os.listdir(os.path.join(directory, image_date))
+    for image_file in lst_image:
+        image_path = os.path.join(directory, image_date, image_file)
+        img = cv2.imread(image_path)
+        
+        resized_img = cv2.resize(img, (int(img.shape[1] * resized_imgs), int(img.shape[0] * resized_imgs)))
+        gray_img = cv2.cvtColor(resized_img, cv2.COLOR_BGR2GRAY)
+        #gray_img = cv2.GaussianBlur(gray_img, (15, 15), 0)
+        gray_img = cv2.medianBlur(gray_img, ksize=7)
+        kernel = np.ones((1,1),np.uint8)
+        ret, thresh = cv2.threshold(gray_img, 20, 255, cv2.THRESH_BINARY)
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+        for i in p:
+            original_img = resized_img[i[0][1]:i[1][1], i[0][0]:i[1][0]]
+            image_crop = thresh[i[0][1]:i[1][1], i[0][0]:i[1][0]]
+            contours, hierarchy = cv2.findContours(image_crop, cv2.RETR_TREE , cv2.CHAIN_APPROX_SIMPLE)
+            # เก็บเฉพาะ Contour ที่ไม่ใช่ภายนอกสุด
+            try:
+                inner_contours = [cnt for cnt, h in zip(contours, hierarchy[0]) if h[3] != -1]
+            except:
+                inner_contours = contours
+            # วนลูปเพื่อตรวจสอบทุก contours
+            for cnt in inner_contours:
+                # คำนวณเส้นรอบวง (perimeter)
+                #perimeter = cv2.arcLength(contour, True)
+                #hull = cv2.convexHull(contour)
+                # หาวงกลมที่มีขนาดเล็กที่สุดที่สามารถครอบคลุม contour ได้
+                (x, y), radius = cv2.minEnclosingCircle(cnt)
+                center = (int(x), int(y))
+                radius = int(radius)
+                #cv2.drawContours(original_img, contours, -1, (0,255,0), 3)
+                cv2.circle(original_img, center, radius, (0, 255, 0), 2)
+                cv2.circle(original_img, center, 3, (0, 0, 255), 1)
+                # ถ้าพื้นที่ของวงกลมประมาณ 90% ของพื้นที่ contour แสดงว่า contour เป็นวงกลม
+                #try:
+                #    if abs(1 - (cv2.contourArea(contour) / (np.pi * radius ** 2))) <= 0.3:
+                #        cv2.circle(color_img, center, radius, (0, 255, 0), 2)
+                #except:
+                #    pass
+            #resized_img[i[0][1]:i[1][1], i[0][0]:i[1][0]] = original_img
+            cv2.rectangle(resized_img, i[0], i[1], (255, 0, 0), 2)
+        thresh = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+        concatenated_image = np.vstack((resized_img, thresh))
+
+        cv2.imshow('Frame', concatenated_image)
+
+        # หยุดเมื่อกด 'q'
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break
+    
+    # ผูกเมาส์กับภาพ
+    #cv2.namedWindow('image')
+    #cv2.setMouseCallback('image', draw_rectangle)
+
+    # แสดงภาพ
+    #cv2.imshow('image', resized_img)
+    #cv2.imshow('thresh', thresh)
+    #cv2.waitKey(0)
+
+    # ปิดหน้าต่างภาพทั้งหมด
+    #cv2.destroyAllWindows()
 
 def video_detect_contour():
     
@@ -220,4 +284,6 @@ def video_detect_find_circles():
     out.release()
     cv2.destroyAllWindows()
 
-video_detect_contour()
+image_detect_find_contour()
+
+#print(os.listdir(os.path.join(directory, image_date)))
